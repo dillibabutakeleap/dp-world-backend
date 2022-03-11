@@ -5,59 +5,42 @@ const GameModuleStages = require("../models/game-module-stages");
 const GameStageLevels = require("../models/game-stage-levels");
 const UserCompletedGameLevels = require("../models/user-completed-game-levels");
 const Sequelize = require("sequelize");
-const UserLicenses = require("../models/user-licenses");
 const { PASSWORD_SET_EMAIL_LINK } = require("../utils/config");
 const { QueryTypes } = require("sequelize");
+const cryptor = require("../utils/cryptor");
+
 const {
   USER,
+  TRAINER,
   TRANSFER_LICENSE_CONDITIONS,
-  TRANSFER_LICENSE_ALLOWED_TIMES,
-  TRANSFER_LICENSE_MAX_COMPLETION_PERCENTAGE,
-  GAME_RESET_AVAILABLE_MAX_LEVEL,
-  TRANSFER_LICENSE_MAX_TIME_IN_DAYS,
 } = require("../utils/constants");
 const UserRoles = require("../models/user-roles");
 const sequelize = require("../utils/database");
-const Conditions = require("../models/conditions-model");
-const jwt = require("../utils/jwt");
 
-const addUserToDatabase = async (t, req, res) => {
+const addUserToDatabase = async (t, payload, loggedInUserId) => {
   try {
-    // Checking if user is already consumed all available licenses
-    const userTeamCount = await UserTeam.count({
-      where: { teamAdminId: req.loggedInUser.userId },
-    });
-    const availableLicense = await UserLicenses.findOne({
-      where: { webAdminUserId: req.loggedInUser.userId, userId: null },
-    });
-
-    if (req.loggedInUser.userLicenses <= userTeamCount || !availableLicense) {
-      // user already consumed all available licenses
-      return res.status(400).send({
-        status: 400,
-        message:
-          "You've consumed all licenses please upgrade your subscription to add more users",
-      });
-    }
-
     // checking if user exists already
-    const payload = req.body;
-    let user = await User.findOne({ where: { email: payload.email } });
+    let user = await User.findOne({
+      where: { employeeId: payload.employeeId },
+    });
+
     if (user) {
-      return res
-        .status(400)
-        .send({ status: 400, message: "User already registered" });
+      throw new Error("User already registered");
     }
-    //   user = User.build({ email: payload.email, name: payload.name });
-    const passwordResetToken = jwt.generatePasswordResetToken();
+
+    const encryptedPassword = await cryptor.encrypt(payload.password);
+
     user = {
       name: payload.name,
       email: payload.email,
-      password: null,
-      passwordResetToken: passwordResetToken,
+      password: encryptedPassword,
+      employeeId: payload.employeeId,
       user_roles: [
         {
           roleName: USER,
+        },
+        {
+          roleName: payload.roleName,
         },
       ],
     };
@@ -66,54 +49,31 @@ const addUserToDatabase = async (t, req, res) => {
       include: [UserRoles],
       transaction: t,
     });
-
     // adding the saved user to team
     const userTeam = UserTeam.build({
-      teamAdminId: req.loggedInUser.userId,
+      teamAdminId: loggedInUserId,
       teamUserId: savedUser.dataValues.userId,
     });
-
     const savedTeamUserDetails = await userTeam.save({
       transaction: t,
     });
-
-    // assigning the user to license
-
-    availableLicense.set("userId", savedUser.userId);
-    await availableLicense.save({ transaction: t });
-
-    // saving the current license record to history
-    const userLicenseHistory = UserLicenseHistory.build({
-      license: availableLicense.license,
-      userId: savedUser.userId,
-      webAdminUserId: req.loggedInUser.userId,
-    });
-    await userLicenseHistory.save({
-      transaction: t,
-    });
-
-    // Send email to user to set password
-    const passwordResetLink = PASSWORD_SET_EMAIL_LINK + passwordResetToken;
-    const sesResponse = await sendPasswordSetEmail(
-      savedUser.email,
-      savedUser.name,
-      passwordResetLink
-    );
-    console.log("aws email send response");
-    console.log(sesResponse);
-
     return savedTeamUserDetails;
   } catch (err) {
     console.log(err);
-    t.rollback();
     throw err;
   }
 };
 
-exports.addUser = async (req, res) => {
+exports.addTrainer = async (req, res) => {
   const t = await sequelize.transaction();
+  const payload = req.body;
   try {
-    const savedTeamUserDetails = await addUserToDatabase(t, req, res);
+    payload["roleName"] = TRAINER;
+    const savedTeamUserDetails = await addUserToDatabase(
+      t,
+      payload,
+      req.loggedInUser.userId
+    );
     await t.commit();
     res.send({
       status: 200,
@@ -209,137 +169,6 @@ exports.getTeamUsers = async (req, res) => {
       message: "Failed fetching Users.",
       devMessage: err.message,
     });
-  }
-};
-
-exports.getTransferLicenseConditions = async (req, res) => {
-  const conditions = await Conditions.findOne({
-    where: { name: TRANSFER_LICENSE_CONDITIONS },
-  });
-  let transferLicenseConditions = conditions ? conditions.value.split("|") : [];
-
-  return res.send({
-    status: 200,
-    message: "Transfer license conditions loaded successfully",
-    conditions: transferLicenseConditions,
-  });
-};
-
-exports.transferUserLicense = async (req, res) => {
-  const t = await sequelize.transaction();
-  try {
-    const teamUserId = req.body.teamUserId;
-    const userLicense = await UserLicenses.findOne({
-      where: { userId: teamUserId },
-    });
-    if (!userLicense) {
-      return res
-        .status(400)
-        .send({ status: 400, message: "No Active license found" });
-    }
-    // checking for each conditions satisfactions.
-    // creating a default error response;
-    const errorResponse = {
-      status: 400,
-      message: "License Transfer is not allowed",
-    };
-
-    // checking for number of time license is already transferred
-    const maxLicenseTransfersAllowed = await Conditions.findOne({
-      where: { name: TRANSFER_LICENSE_ALLOWED_TIMES },
-    });
-    const userLicenseHistory = await UserLicenseHistory.findAll({
-      order: [["createdAt", "ASC"]],
-      where: { license: userLicense.license },
-    });
-    if (maxLicenseTransfersAllowed) {
-      // increasing the max allowed times by 1, because initial assignment of license also stored in history
-      if (userLicenseHistory.length >= +maxLicenseTransfersAllowed.value + 1) {
-        return res.status(400).send(errorResponse);
-      }
-    }
-
-    // checking for max days allowed for transferred
-    const maxDaysAllowed = await Conditions.findOne({
-      where: { name: TRANSFER_LICENSE_MAX_TIME_IN_DAYS },
-    });
-    if (maxDaysAllowed && userLicenseHistory.length) {
-      const firstTransferredLicense = userLicenseHistory[0];
-
-      let startDate = firstTransferredLicense.createdAt;
-      let endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + maxDaysAllowed);
-
-      const diffDays = parseInt(
-        (endDate - startDate) / (1000 * 60 * 60 * 24),
-        10
-      );
-      if (diffDays > maxDaysAllowed) {
-        return res.status(400).send(errorResponse);
-      }
-    }
-
-    // Maximum percentage allowed to transfer license.
-    // if current license consuming user completed more percentage than the specified
-    //  limit then transfer is not allowed.
-    const maxCompletionPercentageAllowed = await Conditions.findOne({
-      where: { name: TRANSFER_LICENSE_MAX_COMPLETION_PERCENTAGE },
-    });
-    if (maxCompletionPercentageAllowed) {
-      const totalLevels = await GameStageLevels.count();
-      const userCompletedLevels = await UserCompletedGameLevels.count({
-        where: { userId: userLicense.userId, isCompleted: true },
-      });
-      if (totalLevels > 0 && userCompletedLevels > 0) {
-        const currentUserCompletionPercentage =
-          (+userCompletedLevels / +totalLevels) * 100;
-        if (
-          currentUserCompletionPercentage >
-          +maxCompletionPercentageAllowed.value
-        ) {
-          return res.status(400).send(errorResponse);
-        }
-      }
-    }
-
-    try {
-      const savedTeamUserDetails = await addUserToDatabase(t, req, res);
-      console.log(savedTeamUserDetails);
-      console.log(savedTeamUserDetails.teamAdminId);
-      const savedUserId = savedTeamUserDetails.dataValues.teamUserId;
-      userLicense.set("userId", savedUserId);
-      userLicense.save({ transaction: t });
-      // copying the data to user license history
-
-      const newUserLicenseHistory = UserLicenseHistory.build({
-        license: userLicense.license,
-        webAdminUserId: userLicense.dataValues.webAdminUserId,
-        userId: savedUserId,
-      });
-      await newUserLicenseHistory.save({ transaction: t });
-      await t.commit();
-      return res.send({
-        status: 200,
-        message: "License Transferred Successfully.",
-      });
-    } catch (e) {
-      console.error(e);
-      return res;
-    }
-  } catch (e) {
-    console.error(e);
-    try {
-      await t.rollback();
-    } catch (err) {
-      console.error(err);
-    }
-    if (!res.headersSent) {
-      return res.status(500).send({
-        status: 400,
-        message: "License transfer failed",
-        devMessage: e.message,
-      });
-    }
   }
 };
 

@@ -23,6 +23,7 @@ const authRoutes = require("./routes/auth-routes");
 const adminRoutes = require("./routes/admin-routes");
 const userRoutes = require("./routes/user-routes");
 const gameRoutes = require("./routes/game-routes");
+const webAdminRoutes = require("./routes/web-admin-routes");
 const app = express();
 
 // create a write stream (in append mode)
@@ -37,7 +38,8 @@ app.use(morgan("combined", { stream: accessLogStream }));
 app.options("*", cors());
 app.use(baseRoutes);
 app.use(authRoutes);
-app.use("/game",gameRoutes);
+app.use("/game", gameRoutes);
+app.use("/web-admin",validateAuthorization(), webAdminRoutes);
 
 // api docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -53,5 +55,3 @@ sequelize
   .catch((err) => {
     console.error(err);
   });
-
-  
