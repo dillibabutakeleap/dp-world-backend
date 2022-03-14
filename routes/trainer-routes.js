@@ -1,31 +1,31 @@
 const express = require("express");
-const webAdminController = require("../controllers/web-admin-controller");
+const router = express.Router();
+const trainerController = require("../controllers/trainer-controller");
+
 const { body } = require("express-validator");
 const { checkForErrors } = require("../utils/validation-errors-checker");
-
-router = express();
 /**
  * @swagger
  * definitions:
- *   trainerAdd:
+ *   traineeAdd:
  *     properties:
  *       name:
  *          type: string
  *       email:
  *          type: string
- *       password:
- *          type: string
  *       employeeId:
+ *          type: string
+ *       phoneNumber:
  *          type: string
  */
 
 /**
  * @swagger
- * /web-admin/add-user:
+ * /trainer/add-trainer:
  *    post:
  *      tags:
- *        - Web Admin Management
- *      summary: API to add a trainer. This api is accessible only by the Web Admins.
+ *        - Trainer Management
+ *      summary: API To add Trainee to the database.
  *      produces:
  *          - application/json
  *      parameters:
@@ -38,7 +38,7 @@ router = express();
  *            in: body
  *            required: true
  *            schema:
- *                 $ref: '#/definitions/trainerAdd'
+ *                 $ref: '#/definitions/traineeAdd'
 
  *      responses:
  *          200:
@@ -48,29 +48,26 @@ router = express();
  *
  */
 router.post(
-  "/add-trainer",
+  "/add-trainee",
   [
-    body("name").not().isEmpty().trim().escape(),
-    body("password").not().isEmpty().trim(),
-    body("employeeId").not().isEmpty().trim().escape(),
+    body("employeeId").not().isEmpty(),
+    body("name").trim().escape(),
     checkForErrors,
   ],
-  webAdminController.addTrainer
+  trainerController.addTrainee
 );
-
-router.get("/users", webAdminController.getTeamUsers);
-
-router.get("/trainers", webAdminController.getTrainers);
-
-router.get("/dashboard", webAdminController.getDashboardData);
 router.post(
-  "/reset-trainer-password",
-  [body("password").not().isEmpty(), body("trainerId").not().isEmpty()],
-  webAdminController.resetTrainerPassword
+  "/user-exists",
+  [
+    body("employeeId").not().isEmpty(),
+    checkForErrors,
+  ],
+  trainerController.checkIfUserExists
 );
 
 router.get(
-  "/user/:userId/progress-data",
-  webAdminController.getUserProgressData
+  "/:trainerId/trainees",
+  trainerController.getTrainees
 );
+
 module.exports = router;

@@ -172,6 +172,48 @@ exports.getTeamUsers = async (req, res) => {
   }
 };
 
+exports.getTrainers = async (req, res) => {
+  try {
+    let size = +req.query.size || 10;
+    let page = +req.query.page || 0;
+    const data = await UserTeam.findAndCountAll({
+      where: { teamAdminId: req.loggedInUser.userId },
+      limit: size,
+      offset: size * page,
+      include: [
+        {
+          model: User,
+          as: "teamUser",
+          attributes: [
+            "userId",
+            "name",
+            "employeeId",
+            "phoneNumber",
+            "email",
+            "createdAt",
+            "updatedAt",
+            "lastLogin",
+          ],
+        },
+      ],
+      raw: true,
+      nest: true,
+    });
+    return res.send({
+      status: 200,
+      message: "Loaded trainers successfully.",
+      trainers: data.rows,
+      totalRecords: data.count,
+    });
+  } catch (err) {
+    return res.status(400).send({
+      status: 400,
+      message: "Failed fetching Users.",
+      devMessage: err.message,
+    });
+  }
+};
+
 async function getProgressDataForDashboard(teamAdminId) {
   try {
     const teamUsers = UserTeam.findAll({ webAdminUserId: teamAdminId });
@@ -407,5 +449,28 @@ exports.getUserProgressData = async (req, res) => {
         devMessage: e.message,
       });
     }
+  }
+};
+
+exports.resetTrainerPassword = async (req, res) => {
+  try {
+    let payload = req.body;
+    const user = await User.findOne({ userId: payload.trainerId });
+    if (!user) {
+      return res.status(400).send({ status: 400, message: "No Trainer Found" });
+    }
+    const encryptedPassword = await cryptor.encrypt(payload.password);
+    user.set("password", encryptedPassword);
+    await user.save();
+    return res
+      .status(200)
+      .send({ status: 200, message: "Trainer password updated successfully." });
+  } catch (e) {
+    console.error(e);
+    return res.status(400).send({
+      status: 400,
+      message: "Failed to fetch User Progress Data",
+      devMessage: e.message,
+    });
   }
 };

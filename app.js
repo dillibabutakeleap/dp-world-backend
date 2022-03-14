@@ -24,6 +24,8 @@ const adminRoutes = require("./routes/admin-routes");
 const userRoutes = require("./routes/user-routes");
 const gameRoutes = require("./routes/game-routes");
 const webAdminRoutes = require("./routes/web-admin-routes");
+const trainerRoutes = require("./routes/trainer-routes");
+
 const app = express();
 
 // create a write stream (in append mode)
@@ -35,11 +37,26 @@ const swaggerDocument = swaggerJsDoc(swaggerOptions);
 
 app.use(express.json());
 app.use(morgan("combined", { stream: accessLogStream }));
-app.options("*", cors());
+app.use(
+  cors({
+    origin: true,
+    optionsSuccessStatus: 200,
+    credentials: true,
+  })
+);
+app.options(
+  "*",
+  cors({
+    origin: true,
+    optionsSuccessStatus: 200,
+    credentials: true,
+  })
+);
 app.use(baseRoutes);
 app.use(authRoutes);
 app.use("/game", gameRoutes);
-app.use("/web-admin",validateAuthorization(), webAdminRoutes);
+app.use("/web-admin", validateAuthorization(), webAdminRoutes);
+app.use("/trainer", validateAuthorization(), trainerRoutes);
 
 // api docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -48,7 +65,7 @@ app.use("", [validateAuthorization(), userRoutes]);
 app.use("/admin", [validateAuthorization("ADMIN"), adminRoutes]);
 // { alter: true }
 sequelize
-  .sync()
+  .sync({ alter: true })
   .then((res) => {
     app.listen(APP_PORT ? APP_PORT : 3000);
   })
