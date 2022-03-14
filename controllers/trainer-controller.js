@@ -5,6 +5,7 @@ const UserTeam = require("../models/user-team");
 const { USER } = require("../utils/constants");
 const GameStageLevels = require("../models/game-stage-levels");
 const UserCompletedGameLevels = require("../models/user-completed-game-levels");
+const Sequelize = require("sequelize");
 
 exports.addTrainee = async (req, res) => {
   const t = await sequelize.transaction();
@@ -115,7 +116,7 @@ exports.checkIfUserExists = async (req, res) => {
       });
     }
   } catch (err) {
-    return res.status(404).send({
+    return res.status(400).send({
       devMessage: err.message,
       status: 400,
       message: "Failed to check user",
@@ -125,7 +126,7 @@ exports.checkIfUserExists = async (req, res) => {
 
 exports.getTrainees = async (req, res) => {
   const trainerId = req.params.trainerId;
-  console.log('coming')
+  console.log("coming");
   try {
     let size = +req.query.size || 10;
     let page = +req.query.page || 0;
@@ -146,6 +147,9 @@ exports.getTrainees = async (req, res) => {
             "createdAt",
             "updatedAt",
             "lastLogin",
+            Sequelize.literal(
+              "(select ((count(ucgl.userId)/(select count(*) from game_stage_levels))*100) from user_completed_game_levels ucgl where userId=`user_teams`.`teamUserId`) as progress"
+            ),
           ],
         },
       ],
@@ -159,7 +163,7 @@ exports.getTrainees = async (req, res) => {
       totalRecords: data.count,
     });
   } catch (err) {
-    return res.status(404).send({
+    return res.status(400).send({
       devMessage: err.message,
       status: 400,
       message: "Failed to get Trainees",

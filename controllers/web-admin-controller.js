@@ -363,76 +363,62 @@ const getUserGameLevelStats = async (userId, levelId) => {
 exports.getUserProgressData = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const gameEnvironments = await GameEnvironments.findAll({
+    const gameModules = await GameModules.findAll({
       include: [
         {
-          model: GameModules,
-          where: { isActive: true },
+          model: GameModuleStages,
           required: false,
-          attributes: ["name", "id"],
+          attributes: ["id", "name"],
           include: [
             {
-              model: GameModuleStages,
+              model: GameStageLevels,
               required: false,
               attributes: ["id", "name"],
-              include: [
-                {
-                  model: GameStageLevels,
-                  required: false,
-                  attributes: ["id", "name"],
-                },
-              ],
             },
           ],
         },
       ],
     });
     let dataObj = {};
-    if (gameEnvironments && gameEnvironments.length) {
-      for (let ge of gameEnvironments) {
-        const geName = ge.name;
-        dataObj[geName] = {};
-        if (ge.game_modules && ge.game_modules.length) {
-          for (let gm of ge.game_modules) {
-            const gmName = gm.name;
-            // get progress by module
-            const moduleProgress = await getUserGameModuleProgress(
-              userId,
-              gm.id
-            );
-            const gameStages = [];
-            if (gm.game_module_stages && gm.game_module_stages.length) {
-              for (let gs of gm.game_module_stages) {
-                let gsObj = {
-                  id: gs.id,
-                  title: gs.name,
-                  gameLevels: [],
-                };
-                if (gs.game_stage_levels && gs.game_stage_levels.length) {
-                  for (let gsl of gs.game_stage_levels) {
-                    const userGameLevelStats = await getUserGameLevelStats(
-                      userId,
-                      gsl.id
-                    );
-                    gsObj.gameLevels.push({
-                      title: gsl.name,
-                      isCompleted: userGameLevelStats.count
-                        ? userGameLevelStats.count
-                        : 0,
-                      timeDurationInSec: userGameLevelStats.spentTimeInSec,
-                      noOfTimesCompleted: +userGameLevelStats.count,
-                    });
-                  }
-                }
-                gameStages.push(gsObj);
+    if (gameModules && gameModules) {
+      for (let gm of gameModules) {
+        const gmName = gm.name;
+        // get progress by module
+        const moduleProgress = await getUserGameModuleProgress(
+          userId,
+          gm.id
+        );
+        const gameStages = [];
+        if (gm.game_module_stages && gm.game_module_stages.length) {
+          for (let gs of gm.game_module_stages) {
+            let gsObj = {
+              id: gs.id,
+              title: gs.name,
+              gameLevels: [],
+            };
+            if (gs.game_stage_levels && gs.game_stage_levels.length) {
+              for (let gsl of gs.game_stage_levels) {
+                const userGameLevelStats = await getUserGameLevelStats(
+                  userId,
+                  gsl.id
+                );
+                gsObj.gameLevels.push({
+                  title: gsl.name,
+                  isCompleted: userGameLevelStats.count
+                    ? userGameLevelStats.count
+                    : 0,
+                  timeDurationInSec: userGameLevelStats.spentTimeInSec,
+                  noOfTimesCompleted: +userGameLevelStats.count,
+                });
               }
             }
-            dataObj[geName][gmName] = {
-              progress: moduleProgress,
-              gameStages: gameStages,
-            };
+            gameStages.push(gsObj);
           }
         }
+        dataObj[gmName] = {
+          progress: moduleProgress,
+          gameStages: gameStages,
+        };
       }
     }
     return res.send({
