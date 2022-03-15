@@ -8,7 +8,6 @@ const Sequelize = require("sequelize");
 const { PASSWORD_SET_EMAIL_LINK } = require("../utils/config");
 const { QueryTypes } = require("sequelize");
 const cryptor = require("../utils/cryptor");
-
 const {
   USER,
   TRAINER,
@@ -219,55 +218,48 @@ async function getProgressDataForDashboard(teamAdminId) {
   try {
     const teamUsers = UserTeam.findAll({ webAdminUserId: teamAdminId });
 
-    const gameEnvironments = await GameEnvironments.findAll({
-      include: [
-        { model: GameModules, where: { isActive: true }, required: false },
-      ],
+    const gameModules = await GameModules.findAll({
+      where: { isActive: true },
     });
     let progressData = {};
-    if (gameEnvironments && gameEnvironments.length) {
-      for (let ge of gameEnvironments) {
-        progressData[ge.name] = {};
-        if (ge.game_modules && ge.game_modules.length) {
-          for (let module of ge.game_modules) {
-            const data = await sequelize.query(
-              `select (((select count(ucgl.id) from user_completed_game_levels ucgl join user_teams
-               ut on ut.teamUserId=ucgl.userId where ut.teamAdminId='${teamAdminId}' and 
+    if (gameModules && gameModules.length) {
+      for (let module of gameModules) {
+        const data = await sequelize.query(
+          `select (((select count(ucgl.id) from user_completed_game_levels ucgl join user_teams
+               ut on ut.teamUserId=ucgl.userId where ut.teamAdminId in (select teamUserId from user_teams where teamAdminId='${teamAdminId}') and 
                ucgl.levelId in (select gsl.id from game_stage_levels gsl join game_module_stages gms on gms.id=gsl.stageId 
                join game_modules gm on gm.id=gms.gameModuleId
                where gameModuleId='${module.id}' and gm.isActive = true)))
-               /((select count(ut.id) from user_teams ut where teamAdminId='${teamAdminId}')
+               /((select count(ut.id) from user_teams ut where teamAdminId in (select teamUserId from user_teams where teamAdminId='${teamAdminId}'))
                *(select count(gsl.id) from game_stage_levels gsl join game_module_stages gms on gms.id=gsl.stageId 
                join game_modules gm on gm.id=gms.gameModuleId
                where gameModuleId='${module.id}' and gm.isActive = true))*100) as completedPercentage`,
-              { type: Sequelize.SELECT }
-            );
-            console.log(data);
-            progressData[ge.name][module.name] =
-              data && data.length && data[0] && data[0].length
-                ? +data[0][0].completedPercentage
-                : 0;
-          }
-          // calculating unCompleted percentage
-
-          totalUCPercent = 0;
-          let totalProgress = 0;
-          Object.keys(progressData[ge.name]).forEach((key) => {
-            totalProgress += progressData[ge.name][key];
-            totalUCPercent += 100 - +progressData[ge.name][key];
-          });
-
-          totalUCPercent =
-            totalUCPercent / Object.keys(progressData[ge.name]).length;
-
-          progressData[ge.name]["unCompleted"] = totalUCPercent;
-          Object.keys(progressData[ge.name]).forEach((key) => {
-            progressData[ge.name][key] =
-              (+progressData[ge.name][key] / (totalProgress + totalUCPercent)) *
-              100;
-          });
-        }
+          { type: Sequelize.SELECT }
+        );
+        console.log(data);
+        progressData[module.name] =
+          data && data.length && data[0] && data[0].length
+            ? +data[0][0].completedPercentage
+            : 0;
       }
+      // calculating unCompleted percentage
+
+      totalUCPercent = 0;
+      let totalProgress = 0;
+      Object.keys(progressData).forEach((key) => {
+        totalProgress += progressData[key];
+        totalUCPercent += 100 - +progressData[key];
+      });
+
+      totalUCPercent =
+        totalUCPercent / Object.keys(progressData).length;
+
+      progressData["unCompleted"] = totalUCPercent;
+      Object.keys(progressData).forEach((key) => {
+        progressData[key] =
+          (+progressData[key] / (totalProgress + totalUCPercent)) *
+          100;
+      });
     }
     return new Promise((resolve) => resolve(progressData));
   } catch (err) {
@@ -278,30 +270,29 @@ async function getProgressDataForDashboard(teamAdminId) {
 
 exports.getDashboardData = async (req, res) => {
   try {
-    // Total Licenses Used
-    const userLicenses = await UserLicenses.count({
-      where: {
-        userId: { [Sequelize.Op.not]: null },
-        webAdminUserId: req.loggedInUser.userId,
-      },
-    });
-    const totalUserLicenses = await UserLicenses.count({
-      where: {
-        webAdminUserId: req.loggedInUser.userId,
-      },
+    // total trainees
+    const countOfTrainees = await UserTeam.count({
+      include: [
+        {
+          model: User,
+          include: [
+            { model: UserRoles, where: { roleName: TRAINER }, required: true },
+          ],
+          required: true,
+        },
+      ],
     });
 
     // Get team users completed totalLevels
     const completedStatus = await sequelize.query(
       `select count(ucgl.id) as totalCompletedLevels,sum(spentTimeInSec) as totalTimeInSec from user_completed_game_levels
-       ucgl join user_teams ut on ut.teamUserId=ucgl.userId where ut.teamAdminId='${req.loggedInUser.userId}'`,
+       ucgl join user_teams ut on ut.teamUserId=ucgl.userId where ut.teamAdminId in (select teamUserId from user_teams where teamAdminId='${req.loggedInUser.userId}')`,
       { type: QueryTypes.SELECT }
     );
 
     progressData = await getProgressDataForDashboard(req.loggedInUser.userId);
     return res.send({
-      totalUserLicenses: totalUserLicenses,
-      licensesUsed: userLicenses,
+      totalTrainees: countOfTrainees,
       totalVRSessions:
         completedStatus && completedStatus.length
           ? completedStatus[0].totalCompletedLevels

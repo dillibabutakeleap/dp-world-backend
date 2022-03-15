@@ -62,6 +62,27 @@ router.get("/users", webAdminController.getTeamUsers);
 
 router.get("/trainers", webAdminController.getTrainers);
 
+/**
+ * @swagger
+ * /web-admin/dashboard:
+ *    post:
+ *      tags:
+ *        - Web Admin Management
+ *      summary: API to get dashboard data for admin panel.
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: Authorization
+ *            description: accessToken from login API.
+ *            required: true
+ *            type: Bearer accessToken
+ *      responses:
+ *          200:
+ *              description: returns dashboard object
+ *              schema:
+ *                 $ref: '#/definitions/LoginResponse'
+ *
+ */
 router.get("/dashboard", webAdminController.getDashboardData);
 router.post(
   "/reset-trainer-password",
