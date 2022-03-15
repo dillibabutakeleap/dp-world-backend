@@ -6,6 +6,28 @@ const { body } = require("express-validator");
 const { checkForErrors } = require("../utils/validation-errors-checker");
 
 
+
+/**
+ * @swagger
+ * /game/modules:
+ *    post:
+ *      tags:
+ *        - Game Management
+ *      summary: API to get all available game modules
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: Authorization
+ *            description: accessToken from login API.
+ *            required: true
+ *            type: Bearer accessToken
+ *      responses:
+ *          200:
+ *              description: returns user object
+ *              schema:
+ *                 $ref: '#/definitions/LoginResponse'
+ *
+ */
 router.get(
   "/modules",
 
