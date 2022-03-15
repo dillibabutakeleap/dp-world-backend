@@ -70,7 +70,6 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
 router.post(
   "/login",
   [
-    body("email").isEmail().normalizeEmail(),
     body("password").not().isEmpty().trim().escape(),
     checkForErrors,
   ],

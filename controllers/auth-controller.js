@@ -2,12 +2,15 @@ const cryptor = require("../utils/cryptor");
 const jwt = require("../utils/jwt");
 const User = require("../models/user-model");
 const UserRoles = require("../models/user-roles");
+const { Op } = require("sequelize");
 
 exports.login = async (req, res) => {
   try {
     const payload = req.body;
     const fethedUser = await User.findOne({
-      where: { email: payload.email },
+      where: {
+        [Op.or]: [{ email: payload.email }, { employeeId: payload.email }],
+      },
       include: UserRoles,
     });
     const errorResponse = { status: 400, message: "Invalid email or password" };

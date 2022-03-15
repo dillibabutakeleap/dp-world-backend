@@ -14,7 +14,6 @@ const swaggerOptions = require("./utils/swagger-options.json");
 const Users = require("./models/user-model");
 const UserCompletedGameLevels = require("./models/user-completed-game-levels");
 const UserTeam = require("./models/user-team");
-const Subscriptions = require("./models/subscriptions");
 const GameModules = require("./models/game-modules");
 
 // routes

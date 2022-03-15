@@ -21,7 +21,7 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
 
 /**
  * @swagger
- * /trainer/add-trainer:
+ * /trainer/add-trainee:
  *    post:
  *      tags:
  *        - Trainer Management

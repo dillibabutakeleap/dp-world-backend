@@ -35,6 +35,7 @@ const addUserToDatabase = async (t, payload, loggedInUserId) => {
       email: payload.email,
       password: encryptedPassword,
       employeeId: payload.employeeId,
+      phoneNumber: payload.phoneNumber,
       user_roles: [
         {
           roleName: USER,
@@ -384,10 +385,7 @@ exports.getUserProgressData = async (req, res) => {
       for (let gm of gameModules) {
         const gmName = gm.name;
         // get progress by module
-        const moduleProgress = await getUserGameModuleProgress(
-          userId,
-          gm.id
-        );
+        const moduleProgress = await getUserGameModuleProgress(userId, gm.id);
         const gameStages = [];
         if (gm.game_module_stages && gm.game_module_stages.length) {
           for (let gs of gm.game_module_stages) {
