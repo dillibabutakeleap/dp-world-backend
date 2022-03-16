@@ -21,6 +21,15 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
 
 /**
  * @swagger
+ * definitions:
+ *   traineeExistsCheck:
+ *     properties:
+ *       employeeId:
+ *          type: string
+ */
+
+/**
+ * @swagger
  * /trainer/add-trainee:
  *    post:
  *      tags:
@@ -56,6 +65,35 @@ router.post(
   ],
   trainerController.addTrainee
 );
+
+/**
+ * @swagger
+ * /trainer/user-exists:
+ *    post:
+ *      tags:
+ *        - Trainer Management
+ *      summary: API to check if any users exists with the the employeeId.
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: Authorization
+ *            description: accessToken from login API.
+ *            required: true
+ *            type: Bearer accessToken
+ *          - name: Model
+ *            description: Request Body
+ *            in: body
+ *            required: true
+ *            schema:
+ *                 $ref: '#/definitions/traineeExistsCheck'
+
+ *      responses:
+ *          200:
+ *              description: returns user object
+ *              schema:
+ *                 $ref: '#/definitions/LoginResponse'
+ *
+ */
 router.post(
   "/user-exists",
   [
