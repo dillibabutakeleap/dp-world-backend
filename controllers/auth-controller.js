@@ -22,7 +22,7 @@ exports.login = async (req, res) => {
       fethedUser.password
     );
     if (!isValidPassword) {
-      return res.statu(400).send(errorResponse);
+      return res.status(400).send(errorResponse);
     }
     const accessToken = jwt.generateJwtToken(fethedUser);
     fethedUser.set("lastLogin", new Date());

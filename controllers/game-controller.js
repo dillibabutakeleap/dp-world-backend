@@ -1,5 +1,4 @@
 const GameModuleStages = require("../models/game-module-stages");
-const GameModules = require("../models/game-modules");
 const GameStageLevels = require("../models/game-stage-levels");
 const UserCompletedGameLevels = require("../models/user-completed-game-levels");
 const User = require("../models/user-model");
@@ -173,4 +172,28 @@ exports.getRecentlyCompletedLevels = async (req, res) => {
     message: "Fetched successfully.",
     recentlyCompletedLevels: recentlyCompletedLevels,
   });
+};
+
+exports.getGameStages = async (req, res) => {
+  try {
+    const gameStages = await GameModuleStages.findAll({
+      order: [["position", "desc"]],
+      include: [
+        {
+          model: GameStageLevels,
+        },
+      ],
+    });
+    res.send({
+      status: 200,
+      message: "Fetched Game stages successfully",
+      gameStages: gameStages,
+    });
+  } catch (err) {
+    return res.status(400).send({
+      status: 400,
+      message: "Error while fetching the game modules",
+      devMessage: err.message,
+    });
+  }
 };

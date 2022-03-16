@@ -1,6 +1,5 @@
 const UserTeam = require("../models/user-team");
 const User = require("../models/user-model");
-const GameModules = require("../models/game-modules");
 const GameModuleStages = require("../models/game-module-stages");
 const GameStageLevels = require("../models/game-stage-levels");
 const UserCompletedGameLevels = require("../models/user-completed-game-levels");

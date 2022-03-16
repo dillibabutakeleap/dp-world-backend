@@ -7,19 +7,6 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
 /**
  * @swagger
  * definitions:
- *   LoginResponse:
- *     properties:
- *       status:
- *          type: integer
- *       message:
- *          type: string
- *       user:
- *          type: object
- */
-
-/**
- * @swagger
- * definitions:
  *   RegisterRequest:
  *     properties:
  *       name:
@@ -28,6 +15,35 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  *          type: string
  *       password:
  *          type: string
+ *   LoginResponse:
+ *     properties:
+ *       status:
+ *          type: integer
+ *       message:
+ *          type: string
+ *       user:
+ *          type: object
+ *          properties:
+ *              userId:
+ *                  type: string
+ *              name:
+ *                  type: string
+ *              email:
+ *                  type: string
+ *              accessToken:
+ *                  type: string
+ *              lastLogin:
+ *                  type: string
+ *              employeeId:
+ *                  type: string
+ *              phoneNumber:
+ *                  type: string
+ *              createdAt:
+ *                  type: string
+ *              updatedAt:
+ *                  type: string
+ *              userRoles:
+ *                  type: string
  */
 
 /**
@@ -62,17 +78,16 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  *
  *      responses:
  *          200:
- *              description: returns user object with accessToken
- *              schema:
- *                 $ref: '#/definitions/LoginResponse'
+ *              description: Successfully inserted a user
+ *              content:
+ *                  'application/json':
+ *                      schema:
+ *                            $ref: '#/definitions/LoginResponse'
  *
  */
 router.post(
   "/login",
-  [
-    body("password").not().isEmpty().trim().escape(),
-    checkForErrors,
-  ],
+  [body("password").not().isEmpty().trim().escape(), checkForErrors],
   authController.login
 );
 

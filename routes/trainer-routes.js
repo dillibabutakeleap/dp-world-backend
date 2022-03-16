@@ -17,6 +17,35 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  *          type: string
  *       phoneNumber:
  *          type: string
+ *   UserExistsResponse:
+ *     properties:
+ *       status:
+ *          type: integer
+ *       message:
+ *          type: string
+ *       isRegistered:
+ *          type: boolean
+ *       progressData:
+ *          type: array
+ *          items: 
+ *              properties:
+ *                id:
+ *                    type: integer
+ *                name:
+ *                    type: string
+ *                position:
+ *                    type: integer
+ *                commonIdentifier:
+ *                    type: string
+ *                createdAt:
+ *                    type: string
+ *                stageId:
+ *                    type: integer
+ *                isCompleted:
+ *                    type: boolean
+ *                isEnable:
+ *                    type: boolean
+ *
  */
 
 /**
@@ -51,9 +80,11 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
 
  *      responses:
  *          200:
- *              description: returns user object
- *              schema:
- *                 $ref: '#/definitions/LoginResponse'
+ *            description: returns Base Response
+ *              content:
+ *                  'application/json':
+ *                      schema:
+ *                          $ref: '#/definitions/BaseResponse'
  *
  */
 router.post(
@@ -86,12 +117,13 @@ router.post(
  *            required: true
  *            schema:
  *                 $ref: '#/definitions/traineeExistsCheck'
-
  *      responses:
  *          200:
- *              description: returns user object
- *              schema:
- *                 $ref: '#/definitions/LoginResponse'
+ *              description: returns base response with progressData if user is exists
+ *              content:
+ *                  'application/json':
+ *                      schema:
+ *                          $ref: '#/definitions/UserExistsResponse'
  *
  */
 router.post(
