@@ -66,21 +66,20 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  *      summary: API To add Trainee to the database.
  *      produces:
  *          - application/json
+ *      requestBody:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/definitions/RegisterRequest'
  *      parameters:
  *          - name: Authorization
  *            description: accessToken from login API.
  *            required: true
  *            type: Bearer accessToken
- *          - name: Model
- *            description: Request Body
- *            in: body
- *            required: true
- *            schema:
- *                 $ref: '#/definitions/traineeAdd'
-
+ *            in: header
  *      responses:
  *          200:
- *            description: returns Base Response
+ *              description: returns base response 
  *              content:
  *                  'application/json':
  *                      schema:
@@ -106,17 +105,17 @@ router.post(
  *      summary: API to check if any users exists with the the employeeId.
  *      produces:
  *          - application/json
+*      requestBody:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/definitions/traineeExistsCheck'
  *      parameters:
  *          - name: Authorization
  *            description: accessToken from login API.
  *            required: true
  *            type: Bearer accessToken
- *          - name: Model
- *            description: Request Body
- *            in: body
- *            required: true
- *            schema:
- *                 $ref: '#/definitions/traineeExistsCheck'
+ *            in: header
  *      responses:
  *          200:
  *              description: returns base response with progressData if user is exists

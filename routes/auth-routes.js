@@ -68,14 +68,11 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  *               The access token will be used in the Bearer Authtoken
  *      produces:
  *          - application/json
- *      parameters:
- *          - name: Model
- *            description: Request Body
- *            in: body
- *            required: true
+ *      requestBody:
+ *        content:
+ *          application/json:
  *            schema:
- *                 $ref: '#/definitions/LoginRequest'
- *
+ *              $ref: '#/definitions/LoginRequest'
  *      responses:
  *          200:
  *              description: Successfully inserted a user
@@ -102,13 +99,11 @@ router.post(
  *               The access token will be used in the Bearer Authtoken
  *      produces:
  *          - application/json
- *      parameters:
- *          - name: Model
- *            description: Request Body
- *            in: body
- *            required: true
+ *      requestBody:
+ *        content:
+ *          application/json:
  *            schema:
- *                 $ref: '#/definitions/RegisterRequest'
+ *              $ref: '#/definitions/RegisterRequest'
  *
  *      responses:
  *          200:

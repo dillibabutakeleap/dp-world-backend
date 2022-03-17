@@ -7,6 +7,9 @@ const { Op } = require("sequelize");
 exports.login = async (req, res) => {
   try {
     const payload = req.body;
+    console.log('====================================');
+    console.log(payload);
+    console.log('====================================');
     const fethedUser = await User.findOne({
       where: {
         [Op.or]: [{ email: payload.email }, { employeeId: payload.email }],

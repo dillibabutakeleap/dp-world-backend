@@ -65,7 +65,7 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
 /**
  * @swagger
  * /game/stages:
- *    post:
+ *    get:
  *      tags:
  *        - Game Management
  *      summary: API to get all game stages
@@ -76,6 +76,7 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  *            description: accessToken from login API.
  *            required: true
  *            type: Bearer accessToken
+ *            in: header
  *      responses:
  *          200:
  *              description: Successfully inserted a user
@@ -105,17 +106,17 @@ router.get("/stages", gameController.getGameStages);
  *      summary: API to update user game completion status
  *      produces:
  *          - application/json
+ *      requestBody:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/definitions/UpdateUserCompletedGameLevel'
  *      parameters:
  *          - name: Authorization
  *            description: accessToken from login API.
  *            required: true
  *            type: Bearer accessToken
- *          - name: Model
- *            description: Request Body
- *            in: body
- *            required: true
- *            schema:
- *                 $ref: '#/definitions/UpdateUserCompletedGameLevel'
+ *            in: header
  *      responses:
  *          200:
  *              description: returns Base response

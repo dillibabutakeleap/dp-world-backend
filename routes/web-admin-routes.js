@@ -28,18 +28,17 @@ router = express();
  *      summary: API to add a trainer. This api is accessible only by the Web Admins.
  *      produces:
  *          - application/json
+ *      requestBody:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/definitions/trainerAdd'
  *      parameters:
  *          - name: Authorization
  *            description: accessToken from login API.
  *            required: true
  *            type: Bearer accessToken
- *          - name: Model
- *            description: Request Body
- *            in: body
- *            required: true
- *            schema:
- *                 $ref: '#/definitions/trainerAdd'
-
+ *            in: header
  *      responses:
  *          200:
  *              description: returns user object
@@ -76,6 +75,7 @@ router.get("/trainers", webAdminController.getTrainers);
  *            description: accessToken from login API.
  *            required: true
  *            type: Bearer accessToken
+ *            in: header
  *      responses:
  *          200:
  *              description: returns dashboard object
