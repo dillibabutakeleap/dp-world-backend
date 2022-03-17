@@ -215,28 +215,22 @@ exports.getTrainers = async (req, res) => {
 
 async function getProgressDataForDashboard(teamAdminId) {
   try {
-    const teamUsers = UserTeam.findAll({ webAdminUserId: teamAdminId });
-
-    const gameModules = await GameModules.findAll({
-      where: { isActive: true },
-    });
+    const gameModuleStages = await GameModuleStages.findAll({});
     let progressData = {};
-    if (gameModules && gameModules.length) {
-      for (let module of gameModules) {
+    if (gameModuleStages && gameModuleStages.length) {
+      for (let gameStage of gameModuleStages) {
         const data = await sequelize.query(
           `select (((select count(ucgl.id) from user_completed_game_levels ucgl join user_teams
                ut on ut.teamUserId=ucgl.userId where ut.teamAdminId in (select teamUserId from user_teams where teamAdminId='${teamAdminId}') and 
                ucgl.levelId in (select gsl.id from game_stage_levels gsl join game_module_stages gms on gms.id=gsl.stageId 
-               join game_modules gm on gm.id=gms.gameModuleId
-               where gameModuleId='${module.id}' and gm.isActive = true)))
+               where gms.id='${gameStage.id}')))
                /((select count(ut.id) from user_teams ut where teamAdminId in (select teamUserId from user_teams where teamAdminId='${teamAdminId}'))
                *(select count(gsl.id) from game_stage_levels gsl join game_module_stages gms on gms.id=gsl.stageId 
-               join game_modules gm on gm.id=gms.gameModuleId
-               where gameModuleId='${module.id}' and gm.isActive = true))*100) as completedPercentage`,
+               where gms.id='${gameStage.id}'))*100) as completedPercentage`,
           { type: Sequelize.SELECT }
         );
         console.log(data);
-        progressData[module.name] =
+        progressData[gameStage.name] =
           data && data.length && data[0] && data[0].length
             ? +data[0][0].completedPercentage
             : 0;
@@ -250,14 +244,12 @@ async function getProgressDataForDashboard(teamAdminId) {
         totalUCPercent += 100 - +progressData[key];
       });
 
-      totalUCPercent =
-        totalUCPercent / Object.keys(progressData).length;
+      totalUCPercent = totalUCPercent / Object.keys(progressData).length;
 
       progressData["unCompleted"] = totalUCPercent;
       Object.keys(progressData).forEach((key) => {
         progressData[key] =
-          (+progressData[key] / (totalProgress + totalUCPercent)) *
-          100;
+          (+progressData[key] / (totalProgress + totalUCPercent)) * 100;
       });
     }
     return new Promise((resolve) => resolve(progressData));
@@ -312,6 +304,27 @@ exports.getDashboardData = async (req, res) => {
     }
   }
 };
+const getUserGameStageProgress = async (userId, gameStageId) => {
+  try {
+    const moduleProgress = await sequelize.query(
+      `select ((count(distinct ucgl.userId,ucgl.levelId)/(SELECT Count(*) FROM   game_stage_levels where id in 
+      (SELECT gsl.id FROM   game_stage_levels gsl JOIN game_module_stages gms ON gms.id = gsl.stageid WHERE
+           gms.id =?)))*100) as progress from user_completed_game_levels ucgl
+     where userId=? and ucgl.levelId in (SELECT gsl.id FROM   game_stage_levels gsl JOIN game_module_stages gms
+      ON gms.id = gsl.stageid WHERE  gms.id = ?)`,
+      {
+        type: QueryTypes.SELECT,
+        replacements: [gameStageId, userId, gameStageId],
+      }
+    );
+    return moduleProgress && moduleProgress.length
+      ? +moduleProgress[0].progress
+      : 0;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+};
 const getUserGameModuleProgress = async (userId, gameModuleId) => {
   try {
     const moduleProgress = await sequelize.query(
@@ -354,65 +367,49 @@ const getUserGameLevelStats = async (userId, levelId) => {
 exports.getUserProgressData = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const gameModules = await GameModules.findAll({
+    const gameModuleStages = await GameModuleStages.findAll({
       include: [
         {
-          model: GameModuleStages,
+          model: GameStageLevels,
           required: false,
           attributes: ["id", "name"],
-          include: [
-            {
-              model: GameStageLevels,
-              required: false,
-              attributes: ["id", "name"],
-            },
-          ],
         },
       ],
     });
-    let dataObj = {};
-    if (gameModules && gameModules) {
-      for (let gm of gameModules) {
-        const gmName = gm.name;
-        // get progress by module
-        const moduleProgress = await getUserGameModuleProgress(userId, gm.id);
-        const gameStages = [];
-        if (gm.game_module_stages && gm.game_module_stages.length) {
-          for (let gs of gm.game_module_stages) {
-            let gsObj = {
-              id: gs.id,
-              title: gs.name,
-              gameLevels: [],
-            };
-            if (gs.game_stage_levels && gs.game_stage_levels.length) {
-              for (let gsl of gs.game_stage_levels) {
-                const userGameLevelStats = await getUserGameLevelStats(
-                  userId,
-                  gsl.id
-                );
-                gsObj.gameLevels.push({
-                  title: gsl.name,
-                  isCompleted: userGameLevelStats.count
-                    ? userGameLevelStats.count
-                    : 0,
-                  timeDurationInSec: userGameLevelStats.spentTimeInSec,
-                  noOfTimesCompleted: +userGameLevelStats.count,
-                });
-              }
-            }
-            gameStages.push(gsObj);
+    const gameStages = [];
+    if (gameModuleStages && gameModuleStages.length) {
+      for (let gs of gameModuleStages) {
+        let gameStageProgress =await getUserGameStageProgress(userId, gs.id);
+        let gsObj = {
+          id: gs.id,
+          title: gs.name,
+          gameLevels: [],
+          progress: gameStageProgress,
+        };
+        if (gs.game_stage_levels && gs.game_stage_levels.length) {
+          for (let gsl of gs.game_stage_levels) {
+            const userGameLevelStats = await getUserGameLevelStats(
+              userId,
+              gsl.id
+            );
+            gsObj.gameLevels.push({
+              title: gsl.name,
+              isCompleted: userGameLevelStats.count
+                ? userGameLevelStats.count
+                : 0,
+              timeDurationInSec: userGameLevelStats.spentTimeInSec,
+              noOfTimesCompleted: +userGameLevelStats.count,
+            });
           }
         }
-        dataObj[gmName] = {
-          progress: moduleProgress,
-          gameStages: gameStages,
-        };
+        gameStages.push(gsObj);
       }
     }
+
     return res.send({
       status: 200,
       message: "User Progress data is loaded successfully",
-      data: dataObj,
+      data: gameStages,
     });
   } catch (e) {
     console.error(e);
