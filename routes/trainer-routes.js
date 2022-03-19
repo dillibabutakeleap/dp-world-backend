@@ -70,7 +70,7 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  *        content:
  *          application/json:
  *            schema:
- *              $ref: '#/definitions/RegisterRequest'
+ *              $ref: '#/definitions/traineeAdd'
  *      parameters:
  *          - name: Authorization
  *            description: accessToken from login API.
@@ -90,7 +90,6 @@ router.post(
   "/add-trainee",
   [
     body("employeeId").not().isEmpty(),
-    body("name").trim().escape(),
     checkForErrors,
   ],
   trainerController.addTrainee
