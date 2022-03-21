@@ -9,6 +9,7 @@ const { LOG_BASE_PATH } = require("./utils/config");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsDoc = require("swagger-jsdoc");
 const swaggerOptions = require("./utils/swagger-options.json");
+const { ADMIN, WEB_ADMIN } = require("./utils/constants");
 
 // Importing models to sequelize create tables
 const Users = require("./models/user-model");
@@ -53,14 +54,18 @@ app.options(
 app.use(baseRoutes);
 app.use(authRoutes);
 app.use("/game", validateAuthorization(), gameRoutes);
-app.use("/web-admin", validateAuthorization(), webAdminRoutes);
+app.use(
+  "/web-admin",
+  validateAuthorization(`${WEB_ADMIN},${ADMIN}`),
+  webAdminRoutes
+);
 app.use("/trainer", validateAuthorization(), trainerRoutes);
 
 // api docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use("", [validateAuthorization(), userRoutes]);
-app.use("/admin", [validateAuthorization("ADMIN"), adminRoutes]);
+app.use("/admin", [validateAuthorization(ADMIN), adminRoutes]);
 // { alter: true }
 sequelize
   .sync({ alter: true })

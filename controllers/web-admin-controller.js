@@ -262,16 +262,17 @@ async function getProgressDataForDashboard(teamAdminId) {
 exports.getDashboardData = async (req, res) => {
   try {
     // total trainees
-    const countOfTrainees = await UserTeam.count({
-      include: [
-        {
-          model: User,
-          include: [
-            { model: UserRoles, where: { roleName: TRAINER }, required: true },
-          ],
-          required: true,
-        },
-      ],
+    let countOfTrainees = await sequelize.query(
+      `select count(*) as totalTrainees from user_teams where teamAdminId in (select teamUserId from user_teams where teamAdminId=?);`,
+      { type: QueryTypes.SELECT, replacements: [req.loggedInUser.userId] }
+    );
+
+    countOfTrainees =
+      countOfTrainees && countOfTrainees.length
+        ? countOfTrainees[0]["totalTrainees"]
+        : 0;
+    const countOfTrainers = await UserTeam.count({
+      where: { teamAdminId: req.loggedInUser.userId },
     });
 
     // Get team users completed totalLevels
@@ -284,6 +285,7 @@ exports.getDashboardData = async (req, res) => {
     progressData = await getProgressDataForDashboard(req.loggedInUser.userId);
     return res.send({
       totalTrainees: countOfTrainees,
+      totalTrainers: countOfTrainers,
       totalVRSessions:
         completedStatus && completedStatus.length
           ? completedStatus[0].totalCompletedLevels
@@ -379,7 +381,7 @@ exports.getUserProgressData = async (req, res) => {
     const gameStages = [];
     if (gameModuleStages && gameModuleStages.length) {
       for (let gs of gameModuleStages) {
-        let gameStageProgress =await getUserGameStageProgress(userId, gs.id);
+        let gameStageProgress = await getUserGameStageProgress(userId, gs.id);
         let gsObj = {
           id: gs.id,
           title: gs.name,
