@@ -52,7 +52,7 @@ app.options(
 );
 app.use(baseRoutes);
 app.use(authRoutes);
-app.use("/game", gameRoutes);
+app.use("/game", validateAuthorization(), gameRoutes);
 app.use("/web-admin", validateAuthorization(), webAdminRoutes);
 app.use("/trainer", validateAuthorization(), trainerRoutes);
 
