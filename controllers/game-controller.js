@@ -114,7 +114,15 @@ exports.updateUserGameLevelStatus = async (req, res) => {
         .send({ status: 400, message: "Game level not found" });
     }
 
-    let user = await User.findOne({ employeeId: payload.employeeId });
+    console.log("====================================");
+    console.log("userId: " + payload.employeeId);
+    console.log("====================================");
+    let user = await User.findOne({
+      where: { employeeId: payload.employeeId },
+    });
+    console.log("====================================");
+    console.log(user);
+    console.log("====================================");
     if (!user) {
       return res.status(400).send({ status: 400, message: "User not found" });
     }
