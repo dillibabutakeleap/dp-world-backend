@@ -26,7 +26,7 @@ exports.addTrainee = async (req, res) => {
       name: payload.name,
       email: payload.email,
       password: null,
-      employeeId: payload.employeeId,
+      employeeId: payload.employeeIkd,
       phoneNumber: payload.phoneNumber,
       user_roles: [
         {

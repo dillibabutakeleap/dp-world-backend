@@ -1,5 +1,6 @@
 const { isAdmin } = require("../utils/auth-validation");
 const User = require("../models/user-model");
+const pdf = require('html-pdf');
 
 exports.getUserDetails = async (req, res) => {
   const userId = req.query.userId;
@@ -55,3 +56,18 @@ exports.getUserGameLevels = async (req, res) => {
     gameLevels: gameStageLevels,
   });
 };
+
+exports.getUserCompletionCertificate =async (req, res) => {
+  try {
+    res.send({
+      status: 200,
+      message: "Generated user training completion certificate.",
+    });
+  } catch (err) {
+    return res.status(400).send({
+      status: 400,
+      message: "Error while fetching the user training completion certificate.",
+      devMessage: err.message,
+    });
+  }
+}

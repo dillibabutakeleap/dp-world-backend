@@ -27,7 +27,7 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  *          type: boolean
  *       progressData:
  *          type: array
- *          items: 
+ *          items:
  *              properties:
  *                id:
  *                    type: integer
@@ -79,7 +79,7 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  *            in: header
  *      responses:
  *          200:
- *              description: returns base response 
+ *              description: returns base response
  *              content:
  *                  'application/json':
  *                      schema:
@@ -88,10 +88,7 @@ const { checkForErrors } = require("../utils/validation-errors-checker");
  */
 router.post(
   "/add-trainee",
-  [
-    body("employeeId").not().isEmpty(),
-    checkForErrors,
-  ],
+  [body("employeeId").not().isEmpty(), checkForErrors],
   trainerController.addTrainee
 );
 
@@ -104,7 +101,7 @@ router.post(
  *      summary: API to check if any users exists with the the employeeId.
  *      produces:
  *          - application/json
-*      requestBody:
+ *      requestBody:
  *        content:
  *          application/json:
  *            schema:
@@ -126,16 +123,10 @@ router.post(
  */
 router.post(
   "/user-exists",
-  [
-    body("employeeId").not().isEmpty(),
-    checkForErrors,
-  ],
+  [body("employeeId").not().isEmpty(), checkForErrors],
   trainerController.checkIfUserExists
 );
 
-router.get(
-  "/:trainerId/trainees",
-  trainerController.getTrainees
-);
+router.get("/:trainerId/trainees", trainerController.getTrainees);
 
 module.exports = router;
