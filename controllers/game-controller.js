@@ -3,6 +3,7 @@ const GameStageLevels = require("../models/game-stage-levels");
 const UserCompletedGameLevels = require("../models/user-completed-game-levels");
 const User = require("../models/user-model");
 const sequelize = require("../utils/database");
+const Sequelize = require("sequelize");
 exports.getGameModules = async (req, res) => {
   try {
     const query = req.query;
@@ -114,15 +115,9 @@ exports.updateUserGameLevelStatus = async (req, res) => {
         .send({ status: 400, message: "Game level not found" });
     }
 
-    console.log("====================================");
-    console.log("userId: " + payload.employeeId);
-    console.log("====================================");
     let user = await User.findOne({
       where: { employeeId: payload.employeeId },
     });
-    console.log("====================================");
-    console.log(user);
-    console.log("====================================");
     if (!user) {
       return res.status(400).send({ status: 400, message: "User not found" });
     }
@@ -154,6 +149,22 @@ exports.updateUserGameLevelStatus = async (req, res) => {
         throw e;
       }
     });
+    const totalLevels = GameStageLevels.count();
+    let completedLevels = await sequelize.query(
+      `select count(distinct userId,levelId) as completedLevels from user_completed_game_levels where userId=?`,
+      {
+        type: Sequelize.SELECT,
+        replacements: [user.userId],
+      }
+    );
+    completedLevels =
+      completedLevels && completedLevels.length
+        ? completedLevels[0][0]["completedLevels"]
+        : 0;
+    if (totalLevels == completedLevels) {
+      user.trainingCompletedOn = new Date();
+      user.save();
+    }
     return res.send({
       status: 200,
       message: "User game level completed status update successfully.",

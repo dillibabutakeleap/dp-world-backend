@@ -1,7 +1,7 @@
 const { isAdmin } = require("../utils/auth-validation");
 const User = require("../models/user-model");
-const pdf = require('html-pdf');
-
+const fs = require("fs");
+const html_to_pdf = require("html-pdf-node");
 exports.getUserDetails = async (req, res) => {
   const userId = req.query.userId;
   let loggedInUser = req.loggedInUser;
@@ -57,12 +57,57 @@ exports.getUserGameLevels = async (req, res) => {
   });
 };
 
-exports.getUserCompletionCertificate =async (req, res) => {
+exports.getUserCompletionCertificate = async (req, res) => {
   try {
-    res.send({
-      status: 200,
-      message: "Generated user training completion certificate.",
-    });
+    const user = await User.findByPk(req.params.userId);
+
+    const filePath =
+      process.cwd() + "/training-certificates/" + user.userId + ".pdf";
+    try {
+      if (fs.existsSync(filePath)) {
+        //file exists
+        console.log("file exists");
+        return res.download(filePath);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+    fs.readFile(
+      process.cwd() + "/html/CERTIFICATE-FILE.html",
+      "utf8",
+      (err, data) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+        let d = new Date();
+        d.getMonth();
+        data = data.replace("Name of the Trainee", user.name);
+        data = data.replace(
+          "Month",
+          (user.trainingCompletedOn.getMonth() + 1).toString().padStart(2, "0")
+        );
+        data = data.replace("Year-", user.trainingCompletedOn.getFullYear());
+        html_to_pdf
+          .generatePdf({ content: data }, { format: "A4" })
+          .then((pdfBuffer) => {
+            fs.writeFile(filePath, pdfBuffer, (err) => {
+              if (err) console.log(err);
+              else {
+                res.download(filePath);
+                console.log("File written successfully\n");
+                console.log("The written has the following contents:");
+              }
+            });
+          });
+      }
+    );
+
+    // res.send({
+    //   status: 200,
+    //   message: "Generated user training completion certificate.",
+    // });
   } catch (err) {
     return res.status(400).send({
       status: 400,
@@ -70,4 +115,4 @@ exports.getUserCompletionCertificate =async (req, res) => {
       devMessage: err.message,
     });
   }
-}
+};

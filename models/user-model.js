@@ -35,6 +35,10 @@ const User = sequelize.define("users", {
     type: Sequelize.STRING,
     allowNull: true,
   },
+  trainingCompletedOn:   {
+    type: Sequelize.DATE,
+    allowNull: true,
+  },
 });
 User.prototype.toJSON = function () {
   const values = {

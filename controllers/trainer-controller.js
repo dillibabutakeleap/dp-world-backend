@@ -148,7 +148,7 @@ exports.getTrainees = async (req, res) => {
             "updatedAt",
             "lastLogin",
             Sequelize.literal(
-              "(select ((count(ucgl.userId)/(select count(*) from game_stage_levels))*100) from user_completed_game_levels ucgl where userId=`user_teams`.`teamUserId`) as progress"
+              "(select ((count(distinct ucgl.userId,ucgl.levelId)/(select count(*) from game_stage_levels))*100) from user_completed_game_levels ucgl where userId=`user_teams`.`teamUserId`) as progress"
             ),
           ],
         },
