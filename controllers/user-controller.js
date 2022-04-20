@@ -86,9 +86,18 @@ exports.getUserCompletionCertificate = async (req, res) => {
         data = data.replace("Name of the Trainee", user.name);
         data = data.replace(
           "Month",
-          (user.trainingCompletedOn.getMonth() + 1).toString().padStart(2, "0")
+          user.trainingCompletedOn
+            ? (user.trainingCompletedOn.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")
+            : "-"
         );
-        data = data.replace("Year-", user.trainingCompletedOn.getFullYear());
+        data = data.replace(
+          "Year-",
+          user.trainingCompletedOn
+            ? user.trainingCompletedOn.getFullYear()
+            : "-"
+        );
         html_to_pdf
           .generatePdf({ content: data }, { format: "A4" })
           .then((pdfBuffer) => {
