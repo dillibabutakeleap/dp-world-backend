@@ -434,7 +434,7 @@ exports.resetTrainerPassword = async (req, res) => {
     }
     const encryptedPassword = await cryptor.encrypt(payload.password);
     user.set("password", encryptedPassword);
-    await user.save();
+    await user.update();
     return res
       .status(200)
       .send({ status: 200, message: "Trainer password updated successfully." });

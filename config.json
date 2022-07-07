@@ -1,10 +1,5 @@
 {
-    "db": {
-        "host": "127.0.0.1",
-        "database": "dpworld",
-        "userName": "root",
-        "password": "Dilli@babu777"
-    },
+    "db": {"host":"13.127.250.57","database":"dpworld","userName":"admin","password":"secret@123"},
     "app": {
         "port": 3000,
         "logBasePage": "/tmp"
