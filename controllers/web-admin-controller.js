@@ -427,14 +427,26 @@ exports.getUserProgressData = async (req, res) => {
 
 exports.resetTrainerPassword = async (req, res) => {
   try {
+    const t = await sequelize.transaction();
     let payload = req.body;
     const user = await User.findOne({ userId: payload.trainerId });
     if (!user) {
       return res.status(400).send({ status: 400, message: "No Trainer Found" });
     }
     const encryptedPassword = await cryptor.encrypt(payload.password);
-    user.set("password", encryptedPassword);
-    await user.update();
+    user.password = encryptedPassword;
+    console.log(encryptedPassword);
+    await sequelize.query(
+      "update users set password = '" +
+        encryptedPassword +
+        "' where userId='" +
+        payload.trainerId +
+        "'",
+      { type: QueryTypes.UPDATE }
+    );
+    // await User.update(user);
+    // await user.save({ transaction: t });
+    // await t.commit();
     return res
       .status(200)
       .send({ status: 200, message: "Trainer password updated successfully." });
