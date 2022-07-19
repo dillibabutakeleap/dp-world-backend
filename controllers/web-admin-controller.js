@@ -459,3 +459,47 @@ exports.resetTrainerPassword = async (req, res) => {
     });
   }
 };
+
+exports.deleteUser = async (req, res) => {
+  try {
+    let payload = req.body;
+    const user = await User.findOne({ userId: payload.userId });
+    if (!user) {
+      return res.status(400).send({ status: 400, message: "No User Found" });
+    }
+
+    //checking if the user is a trainer. If trainer will delete his trainees too.
+    const teamUsers = await UserTeam.findAll({
+      where: { teamAdminId: payload.userId },
+    });
+    if (teamUsers && teamUsers.length) {
+      for (let teamUser of teamUsers) {
+        await deleteUserFromDb(teamUser.teamUserId);
+      }
+    }
+    // Deleting the user
+    await deleteUserFromDb(payload.userId);
+    return res
+      .status(200)
+      .send({ status: 200, message: "User deleted successfully." });
+  } catch (e) {
+    console.error(e);
+    return res.status(400).send({
+      status: 400,
+      message: "Failed to fetch User Progress Data",
+      devMessage: e.message,
+    });
+  }
+};
+
+const deleteUserFromDb = async (userId) => {
+  try {
+    await UserRoles.destroy({ where: { userId: userId } });
+    await UserCompletedGameLevels.destroy({ where: { userId: userId } });
+    await UserTeam.destroy({ where: { teamUserId: userId } });
+    await User.destroy({ where: { userId: userId } });
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+};

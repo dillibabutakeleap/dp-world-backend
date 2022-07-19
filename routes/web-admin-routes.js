@@ -94,4 +94,11 @@ router.get(
   "/user/:userId/progress-data",
   webAdminController.getUserProgressData
 );
+
+router.post(
+  "/remove-user",
+  [body("userId").not().isEmpty()],
+  webAdminController.deleteUser
+);
+
 module.exports = router;
